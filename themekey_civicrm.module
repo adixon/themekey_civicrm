@@ -34,6 +34,10 @@ function themekey_civicrm_themekey_properties() {
     'description' => t("CiviCRM: Event Type - The type of the CiviCRM Event currently being viewed."),
     'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
   );
+  $attributes['civicrm:profile:id'] = array(
+    'description' => t("CiviCRM: Profile ID - The ID of the CiviCRM Porfile currently being viewed."),
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
 
   // These properties require some extra logic to be set.
   // So we delegate to mapping functions which will only be called
@@ -58,6 +62,11 @@ function themekey_civicrm_themekey_properties() {
     'src'       => 'system:dummy',
     'dst'       => 'civicrm:event:type',
     'callback'  => 'themekey_civicrm_dummy2event_type',
+  );
+  $maps[] = array(
+    'src'       => 'system:dummy',
+    'dst'       => 'civicrm:profile:id',
+    'callback'  => 'themekey_civicrm_dummy2profile_id',
   );
 
   return array('attributes' => $attributes, 'maps' => $maps);
@@ -201,6 +210,42 @@ function themekey_civicrm_dummy2event_type() {
 }
 
 /**
+ * Map ThemeKey property's value (destination) from ThemeKey property (source).
+ *
+ * @return string
+ *   id of profile 
+ */
+function themekey_civicrm_dummy2profile_id() {
+  if (!civicrm_initialize()) {
+    return NULL;
+  }
+  $qfKey = NULL;
+  $session_data = NULL;
+  $qfKey = array_key_exists('qfKey', $_REQUEST) ? $_REQUEST['qfKey'] : '';
+  if (array_key_exists('CRM_Profile_Form_Edit_'.$qfKey, $_SESSION['CiviCRM'])) {
+    $session_data = $_SESSION['CiviCRM']['CRM_Profile_Form_Edit_'.$qfKey];
+  }
+  $acceptable_paths = _themekey_civicrm_get_profile_paths();
+  if (array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
+    if (!empty($_GET['gid'])) {
+      $profile_id = $_GET['gid'];
+    }
+    elseif (!is_null($session_data)) {
+      if (!empty($session_data['gid'])) {
+        $profile_id = $session_data['gid'];
+      }
+    }
+    /*else {
+      require_once 'CRM/Core/Session.php';
+      $session = CRM_Core_Session::singleton();
+      $contribution_page_id = $session->get('pastContributionID');
+    } */
+  }
+  return !empty($profile_id) ? $profile_id : NULL;
+}
+
+
+/**
  * Helper function to return a list of contribution-related civicrm paths.
  */
 function _themekey_civicrm_get_contribution_paths() {
@@ -229,5 +274,15 @@ function _themekey_civicrm_get_event_paths() {
   return array(
     'civicrm/event/info',
     'civicrm/event/register',
+  );
+}
+
+/**
+ * Helper function to return a list of profile-related civicrm paths.
+ */
+function _themekey_civicrm_get_profile_paths() {
+  return array(
+    'civicrm/profile/create',
+    'civicrm/profile/edit',
   );
 }
